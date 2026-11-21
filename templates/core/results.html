@@ -1,0 +1,75 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14382f">
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <title>{{ result.restaurant_name|default:"PlantSwap" }} | Menu comparison</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['DM Sans', 'sans-serif'], display: ['Space Grotesk', 'sans-serif'] }, colors: { forest: '#14382f', leaf: '#39765d', lime: '#c9ef74', coral: '#e77b5e', paper: '#f4f7f4', ink: '#182b25' } } } };
+  </script>
+  <style>
+    body { margin: 0; background: #f4f7f4; color: #182b25; font-family: 'DM Sans', sans-serif; }
+    .display { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0; }
+    @media print {
+      @page { margin: 16mm; }
+      body { background: white; }
+      .print-hide { display: none !important; }
+      .dish-row { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="bg-forest text-white">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+      <a href="{% url 'index' %}" class="flex items-center gap-3 font-bold text-white no-underline"><span class="grid h-9 w-9 place-items-center rounded-full bg-lime text-forest">P</span><span><span class="block text-lg leading-5">PlantSwap</span><span class="mt-0.5 block text-[10px] font-medium uppercase tracking-[.12em] text-white/55">Menu economics</span></span></a>
+      <div class="print-hide flex items-center gap-3">
+        <button type="button" onclick="window.print()" class="rounded-md border border-white/30 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">Print / export</button>
+        <a href="{% url 'index' %}" class="rounded-md bg-lime px-4 py-2 text-sm font-bold text-forest no-underline">New conversion</a>
+        {% if user.is_authenticated %}<form action="{% url 'logout' %}" method="post" class="m-0">{% csrf_token %}<button type="submit" class="rounded-md border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10">Sign out</button></form>{% endif %}
+      </div>
+    </div>
+  </header>
+  <main class="mx-auto max-w-7xl px-5 py-8 sm:px-8 md:py-10">
+    <p class="text-xs font-bold uppercase tracking-[.1em] text-leaf">Conversion complete · {{ result.currency }}</p>
+    <h1 class="display mt-3 text-4xl text-forest sm:text-5xl">{{ result.restaurant_name|default:result.name }}</h1>
+    <p class="mt-3 text-sm text-ink/60">Original menu and plant-forward version · {{ result.dishes|length }} dishes · {% if result.engine == 'openai' %}OpenAI live analysis{% elif result.engine == 'saved' %}Saved conversion{% else %}Local analysis{% endif %}</p>
+
+    <section class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Menu summary">
+      <div class="rounded-lg bg-forest p-5 text-white shadow-sm"><p class="text-xs font-bold uppercase tracking-[.1em] text-white/70">Modeled profit lift</p><p class="display mt-3 text-3xl">{{ result.profit_increase_percent }}%</p><p class="mt-2 text-xs text-white/70">{{ result.currency }} {{ result.profit_change }} estimated gross-profit increase.</p></div>
+      <div class="rounded-lg border border-[#dce5de] bg-white/85 p-5"><p class="text-xs font-bold uppercase tracking-[.1em] text-ink/60">Original menu total</p><p class="display mt-3 text-2xl text-forest">{{ result.currency }} {{ result.original_total_price }}</p></div>
+      <div class="rounded-lg border border-[#dce5de] bg-white/85 p-5"><p class="text-xs font-bold uppercase tracking-[.1em] text-ink/60">Plant menu total</p><p class="display mt-3 text-2xl text-forest">{{ result.currency }} {{ result.new_total_price }}</p></div>
+      <div class="rounded-lg border border-[#dce5de] bg-white/85 p-5"><p class="text-xs font-bold uppercase tracking-[.1em] text-ink/60">Customer savings</p><p class="display mt-3 text-2xl text-forest">{{ result.currency }} {{ result.customer_savings }}</p><p class="mt-2 text-xs text-ink/55">Savings and profit lift are separate estimates.</p></div>
+    </section>
+
+    <div class="mt-10 hidden grid-cols-2 border-b border-[#dce1d8] pb-3 text-xs font-bold uppercase tracking-[.12em] text-ink/55 md:grid"><div>Original menu</div><div class="pl-5">PlantSwap menu</div></div>
+    <section class="mt-3" aria-label="Dish-by-dish menu comparison">
+      {% for dish in result.dishes %}
+        <article class="dish-row mb-3 grid overflow-hidden rounded-lg border border-[#dce5de] bg-white shadow-sm md:grid-cols-2">
+          <div class="min-w-0 p-4 sm:p-5">
+            <div class="flex flex-wrap items-start justify-between gap-3"><h2 class="max-w-[70%] text-lg font-bold leading-snug text-forest">{{ dish.original_name }}</h2><span class="whitespace-nowrap rounded-sm bg-white px-2.5 py-1 text-sm font-bold text-forest">{{ result.currency }} {{ dish.original_price }}</span></div>
+            <p class="mt-3 text-sm leading-6 text-ink/70">{{ dish.original_ingredients|default:"Ingredients not listed" }}</p>
+            <p class="mt-3 text-xs text-ink/55">Ingredient cost estimate: {{ result.currency }} {{ dish.original_ingredient_cost }}</p>
+          </div>
+          <div class="min-w-0 border-t border-[#dce1d8] bg-[#f0f5e8] p-4 sm:p-5 md:border-l md:border-t-0">
+            <div class="flex flex-wrap items-start justify-between gap-3"><h2 class="max-w-[70%] text-lg font-bold leading-snug text-forest">{{ dish.swapped_name }}</h2><span class="whitespace-nowrap rounded-sm bg-white px-2.5 py-1 text-sm font-bold text-forest">{{ result.currency }} {{ dish.new_price }}</span></div>
+            <p class="mt-3 text-sm leading-6 text-ink/70">{{ dish.swapped_ingredients|default:"Ingredients not listed" }}</p>
+            <p class="mt-3 text-xs text-ink/55">Ingredient cost estimate: {{ result.currency }} {{ dish.swapped_ingredient_cost }}</p>
+            {% if dish.converted %}<div class="mt-4 flex flex-wrap gap-2"><span class="rounded-sm bg-[#d9ef9b] px-2.5 py-1 text-xs font-bold text-forest">New customer price</span><span class="rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-leaf">Flavor profile retained</span>{% for swap in dish.swaps %}<span class="rounded-sm border border-[#cbd9bc] bg-[#f8fbf2] px-2.5 py-1 text-xs font-medium text-forest">{{ swap.original }} to {{ swap.replacement }}</span>{% endfor %}</div>{% else %}<span class="mt-4 inline-block rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-ink/60">No animal protein detected · unchanged</span>{% endif %}
+            {% if dish.original_nutrition or dish.swapped_nutrition %}<div class="mt-4 grid grid-cols-2 gap-2 border-t border-[#dce5de] pt-4"><div class="rounded-md bg-white/75 p-3"><p class="text-[10px] font-bold uppercase tracking-[.08em] text-ink/55">Original nutrition</p><p class="mt-1 text-xs font-semibold text-forest">{{ dish.original_nutrition.protein_g|default:0 }}g protein · {{ dish.original_nutrition.fiber_g|default:0 }}g fiber · {{ dish.original_nutrition.calories|default:0 }} kcal</p></div><div class="rounded-md bg-white/75 p-3"><p class="text-[10px] font-bold uppercase tracking-[.08em] text-ink/55">PlantSwap nutrition</p><p class="mt-1 text-xs font-semibold text-forest">{{ dish.swapped_nutrition.protein_g|default:0 }}g protein · {{ dish.swapped_nutrition.fiber_g|default:0 }}g fiber · {{ dish.swapped_nutrition.calories|default:0 }} kcal</p></div></div>{% endif %}
+            {% if dish.flavor_profile or dish.texture_notes %}<div class="mt-3 space-y-2 rounded-md border border-[#d4dfce] bg-white/70 p-3">{% if dish.flavor_profile %}<p class="text-xs leading-5 text-ink/70"><strong class="text-forest">Flavor:</strong> {{ dish.flavor_profile }}</p>{% endif %}{% if dish.texture_notes %}<p class="text-xs leading-5 text-ink/70"><strong class="text-forest">Texture:</strong> {{ dish.texture_notes }}</p>{% endif %}</div>{% endif %}
+            {% if dish.market_price_note or dish.price_sources %}<div class="mt-3 rounded-md border border-[#d4dfce] bg-white/70 p-3">{% if dish.market_price_note %}<p class="text-xs leading-5 text-ink/70">{{ dish.market_price_note }}</p>{% endif %}{% if dish.price_sources %}<p class="mt-2 text-[10px] font-bold uppercase tracking-[.08em] text-ink/55">Live price sources</p>{% for source in dish.price_sources %}<span class="mr-2 mt-1 inline-block max-w-full text-xs font-semibold text-leaf">{{ source }}</span>{% endfor %}{% endif %}</div>{% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+    <p class="mt-6 max-w-3xl text-xs leading-5 text-ink/55">Profit figures use default ingredient-cost assumptions and are not guarantees. Confirm supplier prices, portions, allergens and final seasoning with your kitchen team.</p>
+  </main>
+</body>
+</html>

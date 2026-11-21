@@ -1,0 +1,71 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14382f">
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <title>{{ form_title }} | PlantSwap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['DM Sans', 'sans-serif'], display: ['Space Grotesk', 'sans-serif'] }, colors: { forest: '#14382f', leaf: '#39765d', lime: '#c9ef74', coral: '#e77b5e', paper: '#f4f7f4', ink: '#182b25' } } } };
+  </script>
+  <style>
+    body { margin: 0; background: #f4f7f4; color: #182b25; font-family: 'DM Sans', sans-serif; }
+    input { width: 100%; border: 1px solid #dce5de; border-radius: 6px; background: #fbfcfb; padding: 11px 12px; color: #182b25; }
+    input:focus { border-color: #39765d; outline: 3px solid rgba(57, 118, 93, .16); }
+    ul.errorlist { margin: 6px 0 0; padding: 0; list-style: none; color: #b23d33; font-size: .8rem; }
+    .auth-grid { background: linear-gradient(135deg, #e9f0e9 0%, #f4f7f4 70%); }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="bg-forest text-white">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+      <a href="{% url 'index' %}" class="flex items-center gap-3 text-white no-underline" aria-label="PlantSwap home">
+        <span class="grid h-9 w-9 place-items-center rounded-full bg-lime font-bold text-forest">P</span>
+        <span><span class="block text-lg font-bold leading-5">PlantSwap</span><span class="mt-0.5 block text-[10px] font-medium uppercase tracking-[.12em] text-white/55">Menu economics</span></span>
+      </a>
+      <a href="{% url 'index' %}" class="text-sm font-semibold text-white/75 hover:text-white">Back to workspace</a>
+    </div>
+  </header>
+  <main class="auth-grid flex min-h-[calc(100vh-65px)] items-center px-5 py-10 sm:px-8">
+    <div class="mx-auto grid w-full max-w-5xl overflow-hidden rounded-lg border border-[#dce5de] bg-white shadow-[0_24px_70px_rgba(20,56,47,.10)] md:grid-cols-[.9fr_1.1fr]">
+      <aside class="hidden flex-col justify-between bg-forest p-9 text-white md:flex">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[.12em] text-lime">Private restaurant workspace</p>
+          <h1 class="mt-5 font-display text-4xl leading-tight">Good menus deserve good margins.</h1>
+          <p class="mt-4 max-w-sm text-sm leading-6 text-white/70">Keep your conversions together and return to your plant-forward menu drafts whenever you need them.</p>
+        </div>
+        <div class="border-t border-white/15 pt-5 text-xs leading-5 text-white/55">Menu economics, built for the people behind the pass.</div>
+      </aside>
+      <section class="p-6 sm:p-9 md:p-11">
+        <p class="text-xs font-bold uppercase tracking-[.1em] text-leaf">PlantSwap account</p>
+        <h2 class="mt-2 font-display text-3xl font-semibold text-forest">{{ form_title }}</h2>
+        <p class="mt-2 text-sm leading-6 text-ink/65">{{ form_subtitle }}</p>
+
+        <form method="post" class="mt-7 space-y-4" novalidate>
+          {% csrf_token %}
+          {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+          {% if form.non_field_errors %}<div class="rounded-md border border-[#f2c8c0] bg-[#fff4f1] px-3 py-2 text-sm text-[#9f342c]" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+          {% for field in form %}
+            <div>
+              <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-forest">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<div class="mt-1" role="alert">{{ field.errors }}</div>{% endif %}
+              {% if field.help_text %}<p class="mt-1.5 text-xs leading-5 text-ink/55">{{ field.help_text|striptags }}</p>{% endif %}
+            </div>
+          {% endfor %}
+          <button type="submit" class="mt-2 w-full rounded-md bg-forest px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#245849]">{{ submit_label }} <span aria-hidden="true">→</span></button>
+        </form>
+
+        <p class="mt-6 border-t border-[#e5ebe6] pt-5 text-sm text-ink/65">{{ alternate_prompt }} <a class="font-bold text-leaf underline underline-offset-4" href="{% url alternate_url %}{% if next_url %}?next={{ next_url|urlencode }}{% endif %}">{{ alternate_label }}</a></p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

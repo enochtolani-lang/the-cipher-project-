@@ -1,0 +1,792 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14382f">
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <title>PlantSwap | Alt. Proteins</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['DM Sans', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif']
+          },
+          colors: {
+            forest: '#14382f',
+            leaf: '#39765d',
+            lime: '#c9ef74',
+            coral: '#e77b5e',
+            paper: '#f4f7f4',
+            ink: '#182b25'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    #plantswap-loader { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #14382f; color: #f4f7f4; transition: opacity .42s ease, visibility .42s ease; }
+    #plantswap-loader.is-ready { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-mark { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 18px; background: #c9ef74; color: #14382f; font-family: 'Space Grotesk', sans-serif; font-size: 1.6rem; font-weight: 800; box-shadow: 0 18px 55px rgba(201,239,116,.18); }
+    .loader-line { width: 132px; height: 3px; margin: 18px auto 0; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }
+    .loader-line::after { content: ''; display: block; width: 55%; height: 100%; border-radius: inherit; background: #c9ef74; animation: loader-sweep 1.15s ease-in-out infinite; }
+    @keyframes loader-sweep { 0% { transform: translateX(-110%); } 55%, 100% { transform: translateX(210%); } }
+    @media (prefers-reduced-motion: reduce) { #plantswap-loader { transition: none; } .loader-line::after { animation: none; width: 100%; } }
+    :root {
+      color-scheme: light;
+      --forest: #14382f;
+      --leaf: #39765d;
+      --coral: #e77b5e;
+      --paper: #f4f7f4;
+      --ink: #182b25;
+      --muted: #6b7972;
+      --line: #dce5de;
+      --serif: 'Space Grotesk', sans-serif;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #f4f7f4; color: var(--ink); font-family: var(--sans); }
+    button, input, textarea { font: inherit; }
+    button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visible {
+      outline: 3px solid #e2765a;
+      outline-offset: 3px;
+    }
+    .display { font-family: var(--serif); letter-spacing: 0; }
+    .site-header { position: sticky; top: 0; z-index: 20; background: rgba(20, 56, 47, .97); color: #f6f8f3; backdrop-filter: blur(14px); }
+    .site-header nav a { transition: color .18s ease; }
+    .site-header nav a:hover { color: #c9ef74; }
+    .hero-pattern {
+      background-color: #e9f0e9;
+      background-image: linear-gradient(rgba(20, 56, 47, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(20, 56, 47, .035) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    .hero-image { object-position: center 54%; }
+    .eyebrow { color: var(--leaf); font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .editor-surface { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 20px 55px rgba(22, 43, 35, .08); }
+    .menu-textarea { min-height: 238px; resize: vertical; border-radius: 6px; font: 500 .9rem/1.7 var(--sans); }
+    .action-primary { border-radius: 6px; background: var(--forest); color: #fff; box-shadow: 0 5px 14px rgba(20, 56, 47, .16); transition: background .18s ease, transform .18s ease, box-shadow .18s ease; }
+    .action-primary:hover { background: #245849; box-shadow: 0 8px 18px rgba(20, 56, 47, .2); transform: translateY(-1px); }
+    .action-primary:disabled { cursor: wait; opacity: .7; transform: none; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #74a583; }
+    .summary-lead { border-radius: 8px; background: var(--forest); color: #f6f7ee; }
+    .summary-cell { border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.82); }
+    .dish-row { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fff; animation: rise-in .38s both; }
+    .dish-side { min-width: 0; }
+    .swap-side { background: #eef5eb; }
+    .swap-chip { display: inline-flex; max-width: 100%; overflow-wrap: anywhere; border: 1px solid #cbd9bc; border-radius: 999px; background: #f8fbf2; color: #315445; }
+    .history-link { border-radius: 6px; transition: background .15s ease, transform .15s ease; }
+    .history-link:hover { background: #edf4ed; transform: translateX(2px); }
+    .hero-image-wrap { border-radius: 8px; box-shadow: 0 18px 45px rgba(22, 43, 35, .14); }
+    .hero-image-wrap > div { border-radius: 5px; }
+    #converter { scroll-margin-top: 72px; }
+    #recent { scroll-margin-top: 72px; }
+    .workspace-kicker { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(57, 118, 93, .2); border-radius: 999px; background: rgba(255,255,255,.65); padding: 6px 10px; color: var(--forest); font-size: .68rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .workspace-kicker::before { width: 7px; height: 7px; border-radius: 50%; background: #6ca677; content: ''; }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes appear { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .hero-copy { animation: appear .5s both; }
+    .hero-image-wrap { animation: appear .6s .08s both; }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 767px) {
+      .hero-image-wrap { min-height: 190px; }
+      .menu-textarea { min-height: 215px; }
+      .dish-row { border-radius: 6px; }
+    }
+
+    @media print {
+      @page { margin: 16mm; }
+      body { background: #fff; color: #111; }
+      .site-header, .hero, .converter, .history, footer, .print-hide { display: none !important; }
+      #result-section { display: block !important; padding: 0 !important; }
+      .summary-lead, .summary-cell, .swap-side { background: #fff !important; color: #111 !important; border: 1px solid #bbb !important; box-shadow: none !important; }
+      .dish-row { break-inside: avoid; animation: none; }
+      .print-title { display: block !important; }
+    }
+  </style>
+</head>
+<body data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}">
+  <div id="plantswap-loader" role="status" aria-live="polite" aria-label="Loading PlantSwap">
+    <div class="text-center">
+      <div class="loader-mark mx-auto">P</div>
+      <p class="mt-4 text-sm font-bold tracking-[.12em] text-white/80">PLANTSWAP</p>
+      <div class="loader-line"></div>
+    </div>
+  </div>
+  <header class="site-header">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+      <a href="{% url 'index' %}" class="flex items-center gap-3 text-white no-underline" aria-label="PlantSwap home">
+        <span class="grid h-9 w-9 place-items-center rounded-full bg-lime text-forest font-bold">P</span>
+        <span><span class="block text-lg font-bold leading-5 tracking-normal">PlantSwap</span><span class="mt-0.5 block text-[10px] font-medium uppercase tracking-[.12em] text-white/55">Menu economics</span></span>
+      </a>
+      <nav class="flex items-center gap-2 text-sm text-white/80 sm:gap-5" aria-label="Main navigation">
+        <span id="engine-status" class="hidden items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 sm:inline-flex"><span class="status-dot"></span><span>Checking engine</span></span>
+        <a class="hidden hover:text-white sm:inline" href="#converter">Workspace</a>
+        {% if user.is_authenticated %}
+          <span class="hidden text-xs text-white/65 md:inline">{{ user.username }}</span>
+          <form action="{% url 'logout' %}" method="post" class="m-0">{% csrf_token %}<button class="rounded-md border border-white/20 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10" type="submit">Sign out</button></form>
+        {% else %}
+          <a class="rounded-md px-2 py-2 text-xs font-semibold text-white hover:text-lime" href="{% url 'login' %}">Sign in</a>
+          <a class="rounded-md bg-lime px-3 py-2 text-xs font-bold text-forest no-underline" href="{% url 'signup' %}">Get started</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero hero-pattern">
+      <div class="mx-auto grid max-w-7xl items-center gap-6 px-5 py-7 sm:px-8 md:grid-cols-[1.05fr_.95fr] md:gap-10 md:py-8">
+        <div class="hero-copy max-w-2xl">
+          <span class="workspace-kicker">Plant-forward menu intelligence</span>
+          <h1 class="display mt-4 text-4xl leading-[1.04] text-forest sm:text-5xl lg:text-[3.5rem]">More margin.<br><span class="text-coral">Same craving.</span></h1>
+          <p class="mt-4 max-w-xl text-base leading-7 text-ink/75">Rework best-sellers with local plant proteins, preserve the seasoning, and give guests a lighter price.</p>
+          <div class="mt-6 grid max-w-xl grid-cols-3 gap-3 border-t border-forest/15 pt-4">
+            <div><strong class="display text-2xl text-forest">40%</strong><span class="mt-1 block text-[11px] leading-4 text-ink/65">modeled margin upside</span></div>
+            <div><strong class="display text-2xl text-forest">18%</strong><span class="mt-1 block text-[11px] leading-4 text-ink/65">average guest saving</span></div>
+            <div><strong class="display text-2xl text-forest">&lt;1 min</strong><span class="mt-1 block text-[11px] leading-4 text-ink/65">to a new menu draft</span></div>
+          </div>
+        </div>
+        <div class="hero-image-wrap relative min-h-[235px] overflow-hidden rounded-sm md:min-h-[270px]">
+          <img class="hero-image absolute inset-0 h-full w-full object-cover" src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1400&q=85" alt="A colorful bowl of fresh vegetables, grains and greens" fetchpriority="high">
+          <div class="absolute bottom-4 left-4 max-w-[280px] border-l-4 border-coral bg-white/95 px-4 py-3 shadow-sm">
+            <p class="eyebrow">Local swaps, familiar flavor</p>
+            <p class="mt-1 text-sm font-semibold text-forest">Suya spice. Pepper soup heat. Burger comfort.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="converter" class="mx-auto max-w-7xl px-5 py-8 sm:px-8 md:py-10">
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p class="eyebrow">Conversion workspace · 01</p>
+          <h2 class="display mt-2 text-3xl text-forest sm:text-4xl">Rework your menu</h2>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 print-hide">
+          <button id="sample-button" type="button" class="rounded-sm border border-forest/25 px-4 py-2.5 text-sm font-semibold text-forest hover:bg-white">Load sample menu</button>
+          <label for="menu-file" class="cursor-pointer rounded-sm border border-forest/25 px-4 py-2.5 text-sm font-semibold text-forest hover:bg-white">Upload .txt or .csv</label>
+          <input id="menu-file" name="menu_file" form="menu-form" type="file" accept=".txt,.csv,text/plain,text/csv" class="sr-only">
+        </div>
+      </div>
+
+      <div class="editor-surface grid md:grid-cols-[minmax(0,1.35fr)_minmax(270px,.65fr)]">
+        <form id="menu-form" class="p-5 sm:p-7" action="{% url 'convert_menu' %}" method="post" enctype="multipart/form-data" data-endpoint="{% url 'convert_menu' %}" data-sample-endpoint="{% url 'sample_menu' %}">
+          {% csrf_token %}
+          {% if not user.is_authenticated %}
+            <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#dce5de] bg-[#f4f7f4] px-4 py-3" role="note">
+              <p class="text-sm text-ink/70">Sign in to convert menus and keep your results private.</p>
+              <a class="rounded-md bg-forest px-3 py-2 text-xs font-bold text-white no-underline" href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Create account</a>
+            </div>
+          {% endif %}
+          <div class="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+            <div>
+              <label for="restaurant-name" class="mb-2 block text-sm font-bold text-forest">Restaurant name <span class="font-normal text-ink/50">(optional)</span></label>
+              <input id="restaurant-name" name="restaurant_name" type="text" maxlength="120" value="{{ restaurant_name|default:'' }}" class="h-11 w-full rounded-md border border-line bg-paper/50 px-4 text-ink placeholder:text-ink/35" placeholder="e.g. Green Table Kitchen">
+            </div>
+            <div>
+              <label for="currency-code" class="mb-2 block text-sm font-bold text-forest">Currency</label>
+              <select id="currency-code" name="currency" class="h-11 w-full rounded-md border border-line bg-paper/50 px-3 text-sm font-bold text-forest">
+                {% for code in currencies %}<option value="{{ code }}" {% if code == 'NGN' %}selected{% endif %}>{{ code }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[.1em] text-leaf">Menu dishes</p>
+              <label class="mt-1 block text-sm font-bold text-forest" for="dish-name">Build your menu, dish by dish</label>
+            </div>
+            <button id="paste-toggle" type="button" class="rounded-md border border-line px-3 py-2 text-xs font-bold text-forest hover:bg-white">Paste or upload</button>
+          </div>
+
+          <div id="structured-dish-input" class="rounded-lg border border-[#dce5de] bg-[#f8faf7] p-3 sm:p-4">
+            <div class="grid gap-3 lg:grid-cols-[minmax(160px,.8fr)_minmax(220px,1.4fr)_minmax(120px,.6fr)]">
+              <div>
+                <label for="dish-name" class="mb-1.5 block text-xs font-bold uppercase tracking-[.08em] text-ink/60">Dish name</label>
+                <input id="dish-name" type="text" maxlength="160" class="h-11 w-full rounded-md border border-line bg-white px-3 text-sm text-ink placeholder:text-ink/35" placeholder="Beef Suya">
+              </div>
+              <div>
+                <label for="dish-ingredients" class="mb-1.5 block text-xs font-bold uppercase tracking-[.08em] text-ink/60">Ingredients</label>
+                <input id="dish-ingredients" type="text" maxlength="1000" class="h-11 w-full rounded-md border border-line bg-white px-3 text-sm text-ink placeholder:text-ink/35" placeholder="Beef, suya spice, ginger, pepper">
+              </div>
+              <div>
+                <label for="dish-price" class="mb-1.5 block text-xs font-bold uppercase tracking-[.08em] text-ink/60">Price</label>
+                <div class="flex h-11 overflow-hidden rounded-md border border-line bg-white"><input id="dish-price" type="number" inputmode="decimal" min="0.01" step="0.01" class="min-w-0 flex-1 border-0 px-3 text-sm text-ink placeholder:text-ink/35" placeholder="6500"><span id="dish-currency-label" class="grid min-w-[58px] place-items-center border-l border-line bg-[#edf2e8] px-2 text-xs font-bold text-forest">NGN</span></div>
+              </div>
+            </div>
+            <div class="mt-3 flex items-center justify-between gap-3">
+              <p id="dish-input-status" class="text-xs text-ink/55" role="status">Add each dish and repeat as needed.</p>
+              <div class="flex items-center gap-2">
+                <button id="live-data-button" type="button" class="inline-flex h-10 items-center rounded-md border border-line px-3 text-xs font-bold text-forest hover:bg-white">Check live data</button>
+                <button id="add-dish-button" type="button" class="inline-flex h-10 items-center gap-2 rounded-md bg-forest px-4 text-sm font-bold text-white hover:bg-[#245849]"><span aria-hidden="true">+</span> Add dish</button>
+              </div>
+            </div>
+            <div id="live-data-status" class="mt-3 hidden rounded-md border border-[#dce5de] bg-white p-3" aria-live="polite"></div>
+          </div>
+
+          <div id="dish-list" class="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-[#dce5de] bg-white" aria-label="Added dishes">
+            <p id="dish-list-empty" class="px-4 py-5 text-sm text-ink/55">No dishes added yet. Use the fields above or paste a menu.</p>
+          </div>
+
+          <div id="paste-panel" class="mt-3 hidden" hidden>
+            <label for="menu-text" class="mb-1.5 block text-xs font-bold uppercase tracking-[.08em] text-ink/60">Paste or edit menu text</label>
+            <textarea id="menu-text" class="menu-textarea w-full rounded-md border border-line bg-[#fbfcfb] p-4 text-ink placeholder:text-ink/35" placeholder="Dish Name, Ingredients, Current Price&#10;Beef Suya, beef; suya spice; pepper, NGN 6500&#10;Chicken Pepper Soup, chicken; pepper; uziza, NGN 5800">{{ raw_menu_text|default:'' }}</textarea>
+          </div>
+          <input id="combined-menu" name="menu_text" type="hidden" value="{{ raw_menu_text|default:'' }}">
+          {% if error %}<p class="mb-3 text-sm font-semibold text-red-700" role="alert">{{ error }}</p>{% endif %}
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-4">
+            <p id="form-status" class="flex min-h-5 items-center gap-2 text-sm text-ink/60" role="status" aria-live="polite"><span class="status-dot"></span>{% if user.is_authenticated %}Ready to model your menu.{% else %}Sign in to convert your menu.{% endif %}</p>
+            <button id="convert-button" type="submit" class="action-primary inline-flex items-center gap-3 rounded-sm px-5 py-3 text-sm font-bold" {% if not user.is_authenticated %}disabled aria-disabled="true" title="Sign in to convert your menu"{% endif %}>
+              <span id="button-spinner" class="spinner" hidden></span>
+              <span id="button-label">Build my plant menu</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </form>
+        <aside class="border-t border-line bg-[#edf1e9] p-5 sm:p-7 md:border-l md:border-t-0">
+          <p class="eyebrow">A clearer unit model</p>
+          <div class="mt-5 space-y-5">
+            <div class="flex gap-3"><span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-lime text-sm font-bold text-forest">01</span><div><h3 class="font-bold text-forest">Protein swaps</h3><p class="mt-1 text-sm leading-6 text-ink/65">Soya chunks, oyster mushrooms, butter beans and more.</p></div></div>
+            <div class="flex gap-3"><span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#f3c3b4] text-sm font-bold text-forest">02</span><div><h3 class="font-bold text-forest">Your flavor profile</h3><p class="mt-1 text-sm leading-6 text-ink/65">Seasonings and cooking cues stay in place; your kitchen makes the final taste call.</p></div></div>
+            <div class="flex gap-3"><span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-forest">03</span><div><h3 class="font-bold text-forest">Clear cost estimates</h3><p class="mt-1 text-sm leading-6 text-ink/65">Add actual ingredient costs later for a more precise margin comparison.</p></div></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="result-section" class="mx-auto max-w-7xl px-5 pb-14 sm:px-8" hidden aria-live="polite">
+      <div class="print-title mb-5 hidden">
+        <p class="eyebrow">PlantSwap / Menu comparison</p>
+        <h2 id="print-menu-name" class="display mt-1 text-3xl text-forest"></h2>
+      </div>
+      <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p class="eyebrow">Menu studio / 02</p>
+          <h2 class="display mt-2 text-3xl text-forest sm:text-4xl">Your plant-forward menu</h2>
+          <p id="result-meta" class="mt-2 text-sm text-ink/60"></p>
+        </div>
+        <button id="print-button" type="button" class="print-hide rounded-sm border border-forest/25 px-4 py-2.5 text-sm font-semibold text-forest hover:bg-white">Print / export menu</button>
+      </div>
+      <div id="summary-grid" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></div>
+      <div class="mt-8 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] border-b border-line pb-3 text-xs font-bold uppercase tracking-[.12em] text-ink/55 max-md:hidden">
+        <div>Original menu</div><div class="pl-5">PlantSwap menu</div>
+      </div>
+      <div id="comparison-list" class="mt-2"></div>
+      <p class="mt-5 max-w-3xl text-xs leading-5 text-ink/55">Profit figures are estimates based on ingredient-cost assumptions, not a guarantee. Confirm supplier prices, portions, allergens and final seasoning with your kitchen team.</p>
+    </section>
+
+    <section id="recent" class="history border-t border-line bg-white/65">
+      <div class="mx-auto max-w-7xl px-5 py-10 sm:px-8">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div><p class="eyebrow">Your workspace</p><h2 class="display mt-2 text-3xl text-forest">Recent conversions</h2></div>
+          <p class="text-sm text-ink/60">Your latest conversions on this workspace.</p>
+        </div>
+        <div id="history-list" class="mt-5 divide-y divide-line border-y border-line">
+          {% if user.is_authenticated %}
+            {% for conversion in recent_conversions %}
+              <button type="button" class="history-link flex w-full flex-wrap items-center justify-between gap-3 px-3 py-4 text-left" data-url="{% url 'conversion_detail' conversion.pk %}">
+                <span><span class="block font-semibold text-forest">{{ conversion.name|default:"Menu conversion" }}</span><span class="mt-1 block text-xs text-ink/55">{{ conversion.created_at|date:"M j, Y · g:i A" }} · {{ conversion.currency }}</span></span>
+                <span class="flex items-center gap-4 text-sm"><span class="text-ink/65">{{ conversion.original_total_price }} → {{ conversion.new_total_price }}</span><span class="font-bold text-leaf">+{{ conversion.profit_increase_percent }}%</span></span>
+              </button>
+            {% empty %}
+              <p class="px-3 py-5 text-sm text-ink/55">Your saved conversions will appear here.</p>
+            {% endfor %}
+          {% else %}
+            <div class="flex flex-wrap items-center justify-between gap-3 px-3 py-5">
+              <p class="text-sm text-ink/60">Sign in to access your private conversion history.</p>
+              <a href="{% url 'login' %}" class="text-sm font-bold text-leaf underline underline-offset-4">Sign in</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-header">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-5 text-xs text-white/70 sm:px-8">
+      <span>PlantSwap · Make good food work harder.</span><span>Rule-based estimates. Kitchen-approved recipes.</span>
+    </div>
+  </footer>
+
+  <script>
+    const form = document.getElementById('menu-form');
+    const menuText = document.getElementById('menu-text');
+    const combinedMenu = document.getElementById('combined-menu');
+    const currencyCode = document.getElementById('currency-code');
+    const dishCurrencyLabel = document.getElementById('dish-currency-label');
+    const fileInput = document.getElementById('menu-file');
+    const sampleButton = document.getElementById('sample-button');
+    const statusLine = document.getElementById('form-status');
+    const submitButton = document.getElementById('convert-button');
+    const buttonLabel = document.getElementById('button-label');
+    const buttonSpinner = document.getElementById('button-spinner');
+    const resultSection = document.getElementById('result-section');
+    const summaryGrid = document.getElementById('summary-grid');
+    const comparisonList = document.getElementById('comparison-list');
+    const historyList = document.getElementById('history-list');
+    const dishName = document.getElementById('dish-name');
+    const dishIngredients = document.getElementById('dish-ingredients');
+    const dishPrice = document.getElementById('dish-price');
+    const addDishButton = document.getElementById('add-dish-button');
+    const dishList = document.getElementById('dish-list');
+    const dishListEmpty = document.getElementById('dish-list-empty');
+    const dishInputStatus = document.getElementById('dish-input-status');
+    const liveDataButton = document.getElementById('live-data-button');
+    const liveDataStatus = document.getElementById('live-data-status');
+    const pastePanel = document.getElementById('paste-panel');
+    const pasteToggle = document.getElementById('paste-toggle');
+    let structuredDishes = [];
+    function setStatus(message, isError = false) {
+      statusLine.replaceChildren();
+      const dot = document.createElement('span');
+      dot.className = 'status-dot';
+      if (isError) dot.style.backgroundColor = '#c94f40';
+      statusLine.append(dot, document.createTextNode(message));
+      statusLine.classList.toggle('text-red-700', isError);
+      statusLine.classList.toggle('text-ink/60', !isError);
+    }
+
+    function syncCombinedMenu() {
+      if (structuredDishes.length) {
+        const header = 'Dish Name,Ingredients,Current Price';
+        const rows = structuredDishes.map(dish => {
+          const ingredients = dish.ingredients.replace(/"/g, '""');
+          return `${dish.name.replace(/,/g, ' ')},"${ingredients}",${currencyCode.value} ${dish.price}`;
+        });
+        combinedMenu.value = [header, ...rows].join('\n');
+      } else {
+        combinedMenu.value = menuText.value.trim();
+      }
+    }
+
+    currencyCode.addEventListener('change', () => {
+      dishCurrencyLabel.textContent = currencyCode.value;
+      syncCombinedMenu();
+    });
+
+    function renderStructuredDishes() {
+      dishList.replaceChildren();
+      if (!structuredDishes.length) {
+        const empty = element('p', 'px-4 py-5 text-sm text-ink/55', 'No dishes added yet. Use the fields above or paste a menu.');
+        dishList.append(empty);
+        syncCombinedMenu();
+        return;
+      }
+      structuredDishes.forEach((dish, index) => {
+        const row = element('div', 'grid items-center gap-3 px-3 py-3 sm:grid-cols-[.8fr_1.4fr_.55fr_auto]');
+        row.append(element('p', 'font-bold text-forest', dish.name));
+        row.append(element('p', 'text-sm leading-5 text-ink/65', dish.ingredients));
+        row.append(element('p', 'text-sm font-bold text-forest', dish.price));
+        const remove = element('button', 'h-8 w-8 justify-self-end rounded-md border border-line text-sm font-bold text-ink/55 hover:border-coral hover:text-coral', '×');
+        remove.type = 'button';
+        remove.setAttribute('aria-label', `Remove ${dish.name}`);
+        remove.addEventListener('click', () => {
+          structuredDishes.splice(index, 1);
+          renderStructuredDishes();
+        });
+        row.append(remove);
+        dishList.append(row);
+      });
+      syncCombinedMenu();
+    }
+
+    function element(tag, className, text) {
+      const item = document.createElement(tag);
+      if (className) item.className = className;
+      if (text !== undefined && text !== null) item.textContent = text;
+      return item;
+    }
+
+    async function fetchWithTimeout(url, timeout = 8000) {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(`Lookup returned ${response.status}`);
+        return await response.json();
+      } finally {
+        window.clearTimeout(timer);
+      }
+    }
+
+    async function lookupLiveMarketData() {
+      const query = [dishIngredients.value.trim(), dishName.value.trim()].filter(Boolean).join(' ');
+      if (!query) {
+        liveDataStatus.hidden = false;
+        liveDataStatus.innerHTML = '<p class="text-xs font-semibold text-coral">Add a dish name or ingredients first.</p>';
+        return;
+      }
+
+      liveDataStatus.hidden = false;
+      liveDataStatus.innerHTML = '<p class="text-xs font-semibold text-forest">Checking public nutrition and price sources…</p>';
+      liveDataButton.disabled = true;
+
+      let nutrition = null;
+      let price = null;
+      let sources = [];
+
+      try {
+        const proxyParams = new URLSearchParams({ query, currency: currencyCode.value });
+        const publicData = await fetchWithTimeout(`/api/live-food-data/?${proxyParams.toString()}`);
+        nutrition = publicData.nutrition;
+        price = publicData.price;
+        sources = publicData.sources || [];
+      } catch {
+        nutrition = null;
+        price = null;
+      }
+
+      const parts = [];
+      if (nutrition) {
+        parts.push(`<p class="text-xs leading-5 text-forest"><strong>Nutrition per 100g:</strong> ${nutrition.protein_g ?? '—'}g protein · ${nutrition.fiber_g ?? '—'}g fiber · ${nutrition.calories ?? '—'} kcal · ${nutrition.fat_g ?? '—'}g fat</p>`);
+      } else {
+        parts.push('<p class="text-xs text-ink/60">Public nutrition data was unavailable; local estimates remain active.</p>');
+      }
+      if (price) {
+        parts.push(`<p class="mt-2 text-xs leading-5 text-forest"><strong>Live reference price:</strong> ${currencyCode.value} ${price.toFixed(2)} per listed unit</p>`);
+      } else {
+        parts.push('<p class="mt-2 text-xs text-ink/60">No public price record was matched; enter or convert the menu price manually.</p>');
+      }
+      if (sources.length) {
+        const links = sources.map(source => /^https?:\/\//.test(source) ? `<a class="underline underline-offset-2" href="${source}" target="_blank" rel="noopener noreferrer">Source</a>` : `<span>${source}</span>`).join(' · ');
+        parts.push(`<p class="mt-2 text-[10px] font-bold uppercase tracking-[.08em] text-ink/55">Sources · ${links}</p>`);
+      }
+      liveDataStatus.innerHTML = parts.join('');
+      liveDataButton.disabled = false;
+    }
+
+    liveDataButton.addEventListener('click', lookupLiveMarketData);
+
+    function formatMoney(value, currency) {
+      const amount = Number(value);
+      try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
+      } catch {
+        return `${currency} ${amount.toFixed(2)}`;
+      }
+    }
+
+    function addSummaryCell(parent, label, value, detail, primary = false) {
+      const cell = element('div', primary ? 'summary-lead rounded-sm p-5 sm:p-6' : 'summary-cell rounded-sm p-5');
+      cell.append(element('p', 'text-xs font-bold uppercase tracking-[.1em] opacity-70', label));
+      cell.append(element('p', 'display mt-3 text-3xl', value));
+      cell.append(element('p', 'mt-2 text-xs leading-5 opacity-70', detail));
+      parent.append(cell);
+    }
+
+    function makeDishSide(title, price, ingredients, cost, currency, extraClass = '') {
+      const side = element('div', `dish-side p-4 sm:p-5 ${extraClass}`);
+      const line = element('div', 'flex flex-wrap items-start justify-between gap-3');
+      line.append(element('h3', 'max-w-[70%] text-lg font-bold leading-snug text-forest', title));
+      line.append(element('span', 'whitespace-nowrap rounded-sm bg-white px-2.5 py-1 text-sm font-bold text-forest', formatMoney(price, currency)));
+      side.append(line);
+      side.append(element('p', 'mt-3 text-sm leading-6 text-ink/70', ingredients || 'Ingredients not listed'));
+      const costLine = element('p', 'mt-3 text-xs text-ink/55', `Ingredient cost estimate: ${formatMoney(cost, currency)}`);
+      side.append(costLine);
+      return side;
+    }
+
+    function renderDish(dish, index, currency) {
+      const row = element('article', 'dish-row grid md:grid-cols-2');
+      row.style.animationDelay = `${Math.min(index, 8) * 35}ms`;
+      const originalSide = makeDishSide(dish.original_name, dish.original_price, dish.original_ingredients, dish.original_ingredient_cost, currency);
+      const swappedSide = makeDishSide(dish.swapped_name, dish.new_price, dish.swapped_ingredients, dish.swapped_ingredient_cost, currency, 'swap-side md:border-l md:border-line');
+      const badgeRow = element('div', 'mt-4 flex flex-wrap gap-2');
+      if (dish.converted) {
+        badgeRow.append(element('span', 'rounded-sm bg-lime/70 px-2.5 py-1 text-xs font-bold text-forest', `New customer price · ${formatMoney(dish.new_price, currency)}`));
+        badgeRow.append(element('span', 'rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-leaf', 'Flavor profile retained'));
+        if (dish.swaps.length) {
+          for (const swap of dish.swaps) {
+            badgeRow.append(element('span', 'swap-chip rounded-sm px-2.5 py-1 text-xs font-medium', `${swap.original} to ${swap.replacement}`));
+          }
+        } else {
+          badgeRow.append(element('span', 'swap-chip rounded-sm px-2.5 py-1 text-xs font-medium', 'Plant protein selected from dish name'));
+        }
+      } else {
+        badgeRow.append(element('span', 'rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-ink/60', 'No animal protein detected · unchanged'));
+      }
+      swappedSide.append(badgeRow);
+      if (dish.original_nutrition || dish.swapped_nutrition) {
+        const nutritionRow = element('div', 'mt-4 grid grid-cols-2 gap-2 border-t border-line pt-4');
+        for (const [label, nutrition] of [['Original', dish.original_nutrition], ['PlantSwap', dish.swapped_nutrition]]) {
+          if (!nutrition) continue;
+          const nutritionCard = element('div', 'rounded-md bg-white/75 p-3');
+          nutritionCard.append(element('p', 'text-[10px] font-bold uppercase tracking-[.08em] text-ink/55', `${label} nutrition`));
+          const detail = `${nutrition.protein_g ?? 0}g protein · ${nutrition.fiber_g ?? 0}g fiber · ${nutrition.calories ?? 0} kcal`;
+          nutritionCard.append(element('p', 'mt-1 text-xs font-semibold leading-5 text-forest', detail));
+          nutritionRow.append(nutritionCard);
+        }
+        swappedSide.append(nutritionRow);
+      }
+      if (dish.texture_notes || dish.flavor_profile) {
+        const sensory = element('div', 'mt-3 space-y-2 rounded-md border border-[#d4dfce] bg-white/70 p-3');
+        if (dish.flavor_profile) {
+          const flavor = element('p', 'text-xs leading-5 text-ink/70');
+          flavor.append(element('strong', 'text-forest', 'Flavor: '));
+          flavor.append(document.createTextNode(dish.flavor_profile));
+          sensory.append(flavor);
+        }
+        if (dish.texture_notes) {
+          const texture = element('p', 'text-xs leading-5 text-ink/70');
+          texture.append(element('strong', 'text-forest', 'Texture: '));
+          texture.append(document.createTextNode(dish.texture_notes));
+          sensory.append(texture);
+        }
+        swappedSide.append(sensory);
+      }
+      if (dish.market_price_note || (dish.price_sources && dish.price_sources.length)) {
+        const pricing = element('div', 'mt-3 rounded-md border border-[#d4dfce] bg-white/70 p-3');
+        if (dish.market_price_note) pricing.append(element('p', 'text-xs leading-5 text-ink/70', dish.market_price_note));
+        if (dish.price_sources && dish.price_sources.length) {
+          const sourceLabel = element('p', 'mt-2 text-[10px] font-bold uppercase tracking-[.08em] text-ink/55', 'Live price sources');
+          pricing.append(sourceLabel);
+          for (const source of dish.price_sources) {
+            if (/^https?:\/\//i.test(source)) {
+              const link = element('a', 'mr-2 mt-1 inline-block max-w-full truncate text-xs font-semibold text-leaf underline underline-offset-2', source);
+              link.href = source;
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              pricing.append(link);
+            } else {
+              pricing.append(element('span', 'mr-2 mt-1 inline-block text-xs font-semibold text-leaf', source));
+            }
+          }
+        }
+        swappedSide.append(pricing);
+      }
+      row.append(originalSide, swappedSide);
+      return row;
+    }
+
+    function renderResult(data) {
+      const currency = data.currency || 'USD';
+      const convertedCount = data.dishes.filter(dish => dish.converted).length;
+      const savings = Number(data.original_total_price) - Number(data.new_total_price);
+      summaryGrid.replaceChildren();
+      addSummaryCell(summaryGrid, 'Modeled gross-profit lift', `${Number(data.profit_increase_percent).toFixed(1)}%`, `${formatMoney(data.profit_change, currency)} more gross profit per full menu at the modeled costs.`, true);
+      addSummaryCell(summaryGrid, 'Customer menu price', formatMoney(data.new_total_price, currency), `${formatMoney(savings, currency)} less across ${data.dishes.length} dishes.`);
+      addSummaryCell(summaryGrid, 'Original menu total', formatMoney(data.original_total_price, currency), 'Current listed customer prices.');
+      addSummaryCell(summaryGrid, 'Plant-forward swaps', `${convertedCount} / ${data.dishes.length}`, 'Dishes with an animal ingredient replaced.');
+
+      comparisonList.replaceChildren(...data.dishes.map((dish, index) => renderDish(dish, index, currency)));
+      document.getElementById('result-meta').textContent = `${data.name} · ${data.dishes.length} dishes · ${currency} · ${data.engine === 'openai' ? 'OpenAI live analysis' : data.engine === 'saved' ? 'Saved conversion' : 'Local analysis'}`;
+      document.getElementById('print-menu-name').textContent = data.name;
+      resultSection.hidden = false;
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setStatus(`Menu ready. ${convertedCount} dish${convertedCount === 1 ? '' : 'es'} converted.`);
+    }
+
+    async function requestConversion(url, options = {}) {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'The menu could not be converted.');
+      return data;
+    }
+
+    pasteToggle.addEventListener('click', () => {
+      const isHidden = pastePanel.hidden;
+      pastePanel.hidden = !isHidden;
+      pasteToggle.textContent = pastePanel.hidden ? 'Paste or upload' : 'Use dish fields';
+      if (!pastePanel.hidden) menuText.focus();
+    });
+
+    [dishName, dishIngredients, dishPrice].forEach(input => {
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          addDishButton.click();
+        }
+      });
+    });
+
+    addDishButton.addEventListener('click', () => {
+      const name = dishName.value.trim();
+      const ingredients = dishIngredients.value.trim();
+      const price = dishPrice.value.trim();
+      if (!name || !ingredients || !price) {
+        dishInputStatus.textContent = 'Complete dish name, ingredients and price.';
+        dishInputStatus.className = 'text-xs font-semibold text-coral';
+        return;
+      }
+      structuredDishes.push({ name, ingredients, price });
+      dishName.value = '';
+      dishIngredients.value = '';
+      dishPrice.value = '';
+      dishInputStatus.textContent = `${structuredDishes.length} dish${structuredDishes.length === 1 ? '' : 'es'} ready.`;
+      dishInputStatus.className = 'text-xs text-leaf';
+      renderStructuredDishes();
+      dishName.focus();
+    });
+
+    const fallbackSampleDishes = [
+      { name: 'Beef Suya', ingredients: 'beef; suya spice; ginger; pepper', price: '6500' },
+      { name: 'Chicken Pepper Soup', ingredients: 'chicken; uziza; pepper; onions', price: '5800' },
+      { name: 'Goat Meat Stew', ingredients: 'goat meat; tomato; thyme; chili', price: '7200' },
+      { name: 'Classic Beef Burger', ingredients: 'beef patty; lettuce; tomato; house sauce', price: '6800' }
+    ];
+
+    function loadStructuredSample(dishes) {
+      structuredDishes = dishes.map(dish => ({
+        name: dish.name,
+        ingredients: dish.ingredients,
+        price: dish.price
+      }));
+      currencyCode.value = 'NGN';
+      dishCurrencyLabel.textContent = 'NGN';
+      menuText.value = 'Dish Name,Ingredients,Current Price\n' + dishes.map(dish => `${dish.name},"${dish.ingredients}",NGN ${dish.price}`).join('\n');
+      renderStructuredDishes();
+      pastePanel.hidden = true;
+      pasteToggle.textContent = 'Paste or upload';
+      dishInputStatus.textContent = `${structuredDishes.length} sample dishes ready.`;
+      dishInputStatus.className = 'text-xs text-leaf';
+      setStatus(document.body.dataset.authenticated === 'true' ? 'Sample menu loaded. Ready to convert.' : 'Sample loaded. Sign in to convert and save it.');
+      document.getElementById('dish-list').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    sampleButton.addEventListener('click', async () => {
+      sampleButton.disabled = true;
+      try {
+        const response = await fetch(form.dataset.sampleEndpoint, { headers: { Accept: 'application/json' } });
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.menu_text) {
+            menuText.value = data.menu_text;
+            const parsedLines = data.menu_text.split(/\r?\n/).slice(1).filter(Boolean);
+            const parsedDishes = parsedLines.map(line => {
+              const match = line.match(/^([^,]+),"?([^"\n]+)"?,(?:\s*[A-Z]{3}\s*)?(\d+(?:\.\d+)?)$/);
+              if (!match) return null;
+              return { name: match[1].trim(), ingredients: match[2].replace(/;/g, ',').trim(), price: match[3].trim() };
+            }).filter(Boolean);
+            if (parsedDishes.length) {
+              loadStructuredSample(parsedDishes);
+              return;
+            }
+          }
+        }
+        loadStructuredSample(fallbackSampleDishes);
+      } catch {
+        loadStructuredSample(fallbackSampleDishes);
+      } finally {
+        sampleButton.disabled = false;
+      }
+    });
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      if (file.size > 50000) {
+        setStatus('That file is over 50,000 characters. Choose a smaller menu file.', true);
+        fileInput.value = '';
+        return;
+      }
+      try {
+        menuText.value = await file.text();
+        structuredDishes = [];
+        renderStructuredDishes();
+        pastePanel.hidden = false;
+        pasteToggle.textContent = 'Use dish fields';
+        setStatus(`${file.name} loaded.`);
+      } catch {
+        setStatus('Could not read that file. Try a plain text or CSV file.', true);
+      }
+    });
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (structuredDishes.length === 0 && menuText.value.trim()) combinedMenu.value = menuText.value.trim();
+      syncCombinedMenu();
+      if (!combinedMenu.value.trim()) {
+        setStatus('Add your menu or load the sample menu first.', true);
+        return;
+      }
+      submitButton.disabled = true;
+      buttonSpinner.hidden = false;
+      buttonLabel.textContent = 'Swapping ingredients';
+      setStatus('Pricing the plant-forward menu…');
+      try {
+        const data = await requestConversion(form.dataset.endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify({
+            menu_text: combinedMenu.value,
+            currency: currencyCode.value,
+            restaurant_name: document.getElementById('restaurant-name').value
+          })
+        });
+        renderResult(data);
+        addHistoryItem(data);
+      } catch (error) {
+        setStatus(error.message || 'The menu could not be converted. Check the rows and try again.', true);
+      } finally {
+        submitButton.disabled = false;
+        buttonSpinner.hidden = true;
+        buttonLabel.textContent = 'Build my plant menu';
+      }
+    });
+
+    function addHistoryItem(data) {
+      const empty = historyList.querySelector('p');
+      if (empty) empty.remove();
+      const button = element('button', 'history-link flex w-full flex-wrap items-center justify-between gap-3 px-3 py-4 text-left');
+      button.type = 'button';
+      button.dataset.url = `/api/conversions/${data.id}/`;
+      const title = element('span', 'block font-semibold text-forest', data.name);
+      const date = element('span', 'mt-1 block text-xs text-ink/55', 'Just now · ' + data.currency);
+      const text = element('span');
+      text.append(title, date);
+      const stats = element('span', 'flex items-center gap-4 text-sm');
+      stats.append(element('span', 'text-ink/65', `${formatMoney(data.original_total_price, data.currency)} → ${formatMoney(data.new_total_price, data.currency)}`));
+      stats.append(element('span', 'font-bold text-leaf', `+${Number(data.profit_increase_percent).toFixed(1)}%`));
+      button.append(text, stats);
+      historyList.prepend(button);
+      while (historyList.children.length > 6) historyList.lastElementChild.remove();
+    }
+
+    historyList.addEventListener('click', async event => {
+      const button = event.target.closest('button[data-url]');
+      if (!button) return;
+      setStatus('Opening saved menu…');
+      try {
+        renderResult(await requestConversion(button.dataset.url));
+      } catch (error) {
+        setStatus(error.message || 'Could not open that saved menu.', true);
+      }
+    });
+
+    document.getElementById('print-button').addEventListener('click', () => window.print());
+
+    const loader = document.getElementById('plantswap-loader');
+    const finishLoader = () => {
+      if (!loader) return;
+      window.setTimeout(() => loader.classList.add('is-ready'), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 80 : 720);
+    };
+    if (document.readyState === 'complete') finishLoader();
+    else window.addEventListener('load', finishLoader, { once: true });
+
+    fetch('{% url "openai_health" %}')
+      .then(response => response.json())
+      .then(data => {
+        const badge = document.getElementById('engine-status');
+        if (!badge) return;
+        const label = badge.querySelector('span:last-child');
+        if (label) label.textContent = data.status === 'openai' ? 'OpenAI live' : data.status === 'local' ? 'Local model ready' : 'Local fallback ready';
+        const dot = badge.querySelector('.status-dot');
+        if (dot) dot.style.backgroundColor = data.status === 'openai' ? '#c9ef74' : data.status === 'local' ? '#74a583' : '#e7b75e';
+      })
+      .catch(() => {});
+  </script>
+</body>
+</html>
